@@ -17,6 +17,8 @@ import {
 import { createTodo, deleteTodo, getTodos, patchTodo } from '../api/todos-api'
 import Auth from '../auth/Auth'
 import { Todo } from '../types/Todo'
+import './styles.css';
+
 
 interface TodosProps {
   auth: Auth
@@ -28,10 +30,11 @@ interface TodosState {
   newTodoName: string
   isLoading: boolean
   page: number
+  filter: string
 }
 
 interface IExampleComponentProps {
- 
+
 }
 
 interface IExampleComponentState {
@@ -43,6 +46,7 @@ export class Todos extends React.PureComponent<TodosProps, TodosState>  {
     newTodoName: '',
     isLoading: false,
     page: 1,
+    filter: "",
   }
   componentDidMount() {
     this.loadUsers();
@@ -59,19 +63,19 @@ export class Todos extends React.PureComponent<TodosProps, TodosState>  {
     const { page } = this.state;
 
     this.setState({ isLoading: true });
-        try {
-      const results = await getTodos(this.props.auth.getIdToken(),page,2);
+    try {
+      const results = await getTodos(this.props.auth.getIdToken(), page, 2);
       this.setState((prevState) => ({
         todos: [...prevState.todos, ...results],
-       
+
       }));
     } catch (e) {
       let errorMessage = "Failed to fetch todos";
-      if (e instanceof Error){
+      if (e instanceof Error) {
         errorMessage = e.message
       }
       alert(`Failed to fetch todos: ${errorMessage}`)
-    }  
+    }
     finally {
       this.setState({ isLoading: false });
     }
@@ -136,15 +140,48 @@ export class Todos extends React.PureComponent<TodosProps, TodosState>  {
     }
   }
 
+  handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({ filter: event.target.value })
+  }
+
   render() {
-    const { isLoading} = this.state;
+    const { todos, filter, isLoading } = this.state;
+    const lowercasedFilter = filter.toLowerCase();
+
+    const filteredData = todos.filter(item => {
+      return item.name.toLowerCase().includes(lowercasedFilter);
+    });
+
     return (
       <div>
         <Header as="h1">TODOs</Header>
 
         {this.renderCreateTodoInput()}
 
-        {this.renderTodos()}
+        <Input
+          value={filter}
+          action={{
+            color: 'red',
+            labelPosition: 'left',
+            icon: 'search',
+            content: 'Search',
+          }}
+          fluid
+          actionPosition="left"
+          placeholder="Filter by name...."
+          onChange={this.handleChange}
+        />
+
+        {
+          (isLoading) ?
+            this.renderLoading() :
+            <Grid padded>
+              {
+                this.renderTodosList(filteredData)
+              }
+            </Grid>
+        }
+
 
         <div className="load-more">
           <button onClick={this.loadMore} className="btn-grad">
@@ -154,6 +191,65 @@ export class Todos extends React.PureComponent<TodosProps, TodosState>  {
       </div>
     )
   }
+
+  renderLoading() {
+    return (
+      <Grid.Row>
+        <Loader indeterminate active inline="centered">
+          Loading TODOs
+        </Loader>
+      </Grid.Row>
+    )
+  }
+
+  renderTodosList(todos: Todo[]) {
+    return (
+      todos.map((todo, pos) => {
+        return (
+          <Grid.Row key={todo.todoId}>
+            <Grid.Column width={1} verticalAlign="middle">
+              <Checkbox
+                onChange={() => this.onTodoCheck(pos)}
+                checked={todo.done}
+              />
+            </Grid.Column>
+            <Grid.Column width={10} verticalAlign="middle">
+              {todo.name}
+            </Grid.Column>
+            <Grid.Column width={3} floated="right">
+              {todo.dueDate}
+            </Grid.Column>
+            <Grid.Column width={1} floated="right">
+              <Button
+                icon
+                color="blue"
+                onClick={() => this.onEditButtonClick(todo.todoId)}
+              >
+                <Icon name="pencil" />
+              </Button>
+            </Grid.Column>
+            <Grid.Column width={1} floated="right">
+              <Button
+                icon
+                color="red"
+                onClick={() => this.onTodoDelete(todo.todoId)}
+              >
+                <Icon name="delete" />
+              </Button>
+            </Grid.Column>
+            {todo.attachmentUrl && (
+              <Image src={todo.attachmentUrl} size="small" wrapped />
+            )}
+            <Grid.Column width={16}>
+              <Divider />
+            </Grid.Column>
+          </Grid.Row>
+        )
+      })
+
+    )
+  }
+
 
   renderCreateTodoInput() {
     return (
@@ -180,72 +276,10 @@ export class Todos extends React.PureComponent<TodosProps, TodosState>  {
     )
   }
 
-  renderTodos() {
-    if (this.state.isLoading) {
-      return this.renderLoading()
-    }
 
-    return this.renderTodosList()
-  }
 
-  renderLoading() {
-    return (
-      <Grid.Row>
-        <Loader indeterminate active inline="centered">
-          Loading TODOs
-        </Loader>
-      </Grid.Row>
-    )
-  }
 
-  renderTodosList() {
-    return (
-      <Grid padded>
-        {this.state.todos.map((todo, pos) => {
-          return (
-            <Grid.Row key={todo.todoId}>
-              <Grid.Column width={1} verticalAlign="middle">
-                <Checkbox
-                  onChange={() => this.onTodoCheck(pos)}
-                  checked={todo.done}
-                />
-              </Grid.Column>
-              <Grid.Column width={10} verticalAlign="middle">
-                {todo.name}
-              </Grid.Column>
-              <Grid.Column width={3} floated="right">
-                {todo.dueDate}
-              </Grid.Column>
-              <Grid.Column width={1} floated="right">
-                <Button
-                  icon
-                  color="blue"
-                  onClick={() => this.onEditButtonClick(todo.todoId)}
-                >
-                  <Icon name="pencil" />
-                </Button>
-              </Grid.Column>
-              <Grid.Column width={1} floated="right">
-                <Button
-                  icon
-                  color="red"
-                  onClick={() => this.onTodoDelete(todo.todoId)}
-                >
-                  <Icon name="delete" />
-                </Button>
-              </Grid.Column>
-              {todo.attachmentUrl && (
-                <Image src={todo.attachmentUrl} size="small" wrapped />
-              )}
-              <Grid.Column width={16}>
-                <Divider />
-              </Grid.Column>
-            </Grid.Row>
-          )
-        })}
-      </Grid>
-    )
-  }
+
 
   calculateDueDate(): string {
     const date = new Date()
