@@ -5,14 +5,20 @@ import * as middy from 'middy'
 import { cors, httpErrorHandler } from 'middy/middlewares'
 
 import { getUserId } from '../utils';
-import { getAllTodos } from '../../helpers/todos'
+import { getByPageTodos } from '../../helpers/todos';
 
 // TODO: Get all TODO items for a current user
 export const handler = middy(
   async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     // Write your code here
     const userId = getUserId(event);
-    const todos = await getAllTodos(userId);
+
+    // userId: string, page: number, limit: number
+
+    const page = Number(event.pathParameters.page);
+    const limit = Number(event.pathParameters.limit);
+
+    const todos = await getByPageTodos(userId, page, limit);
 
     return {
       statusCode: 200,

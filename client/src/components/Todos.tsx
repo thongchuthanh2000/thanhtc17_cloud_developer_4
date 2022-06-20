@@ -26,15 +26,62 @@ interface TodosProps {
 interface TodosState {
   todos: Todo[]
   newTodoName: string
-  loadingTodos: boolean
+  isLoading: boolean
+  page: number
 }
 
-export class Todos extends React.PureComponent<TodosProps, TodosState> {
+interface IExampleComponentProps {
+ 
+}
+
+interface IExampleComponentState {
+  page: number;
+}
+export class Todos extends React.PureComponent<TodosProps, TodosState>  {
   state: TodosState = {
     todos: [],
     newTodoName: '',
-    loadingTodos: true
+    isLoading: false,
+    page: 1,
   }
+  componentDidMount() {
+    this.loadUsers();
+  }
+
+  componentDidUpdate(prevProps: IExampleComponentProps, prevState: IExampleComponentState) {
+    if (prevState.page !== this.state.page) {
+      this.loadUsers();
+    }
+  }
+
+
+  loadUsers = async () => {
+    const { page } = this.state;
+
+    this.setState({ isLoading: true });
+        try {
+      const results = await getTodos(this.props.auth.getIdToken(),page,2);
+      this.setState((prevState) => ({
+        todos: [...prevState.todos, ...results],
+       
+      }));
+    } catch (e) {
+      let errorMessage = "Failed to fetch todos";
+      if (e instanceof Error){
+        errorMessage = e.message
+      }
+      alert(`Failed to fetch todos: ${errorMessage}`)
+    }  
+    finally {
+      this.setState({ isLoading: false });
+    }
+  };
+
+  loadMore = () => {
+    this.setState((prevState) => ({
+      page: prevState.page + 1
+    }));
+  };
 
   handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     this.setState({ newTodoName: event.target.value })
@@ -85,27 +132,12 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
         })
       })
     } catch {
-      alert('Todo deletion failed')
-    }
-  }
-
-  async componentDidMount() {
-    try {
-      const todos = await getTodos(this.props.auth.getIdToken())
-      this.setState({
-        todos,
-        loadingTodos: false
-      })
-    } catch (e) {
-      let errorMessage = "Failed to fetch todos";
-      if (e instanceof Error){
-        errorMessage = e.message
-      }
-      alert(`Failed to fetch todos: ${errorMessage}`)
+      alert('Todo update todo check failed')
     }
   }
 
   render() {
+    const { isLoading} = this.state;
     return (
       <div>
         <Header as="h1">TODOs</Header>
@@ -113,6 +145,12 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
         {this.renderCreateTodoInput()}
 
         {this.renderTodos()}
+
+        <div className="load-more">
+          <button onClick={this.loadMore} className="btn-grad">
+            {isLoading ? 'Loading...' : 'Load More'}
+          </button>
+        </div>
       </div>
     )
   }
@@ -143,7 +181,7 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
   }
 
   renderTodos() {
-    if (this.state.loadingTodos) {
+    if (this.state.isLoading) {
       return this.renderLoading()
     }
 

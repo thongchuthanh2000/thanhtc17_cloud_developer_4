@@ -21,9 +21,10 @@ const urlExpiration = process.env.SIGNED_URL_EXPIRATION;
 const todosAcess = new TodosAccess();
 const attachmentUtils = new AttachmentUtils();
 
-export async function getAllTodos(userId: string): Promise<TodoItem[]> {
-    return await todosAcess.getAllTodos(userId);
+export async function getByPageTodos(userId: string, page: number, limit: number): Promise<TodoItem[]> {
+    return await todosAcess.getByPageTodos(userId, page, limit);
 }
+
 
 export async function createTodo(userId: string, createTodoRequest: CreateTodoRequest): Promise<TodoItem> {
     const itemId = uuid.v4();

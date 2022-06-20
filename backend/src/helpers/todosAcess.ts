@@ -18,11 +18,11 @@ export class TodosAccess {
     ) {
     }
 
-    async getAllTodos(userId: string): Promise<TodoItem[]> {
+    async getByPageTodos(userId: string, page: number, limit: number): Promise<TodoItem[]> {
 
         logger.info('Get all todos');
 
-        const result = await this.docClient.query({
+        const resultAll = await this.docClient.query({
             TableName: this.todosTable,
             IndexName: this.todoCreatedIndex,
             KeyConditionExpression: 'userId = :pk',
@@ -31,9 +31,11 @@ export class TodosAccess {
             }
         }).promise();
 
-        const items = result.Items;
-        return items as TodoItem[]
+        let itemsAll = resultAll.Items;
+        itemsAll = itemsAll.slice((page - 1) * limit, page * limit);
+        return itemsAll as TodoItem[]
     }
+
 
     async createTodo(item: TodoItem): Promise<TodoItem> {
 
